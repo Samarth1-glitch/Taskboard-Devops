@@ -409,9 +409,8 @@ The pipeline completed successfully with:
 
 ## Pipeline Screenshot
 
-> Add the screenshot of the successful GitHub Actions pipeline execution below.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/b403dea0-2ede-4529-ac0c-b4dbbe2ddfb4" />
 
-![Successful Pipeline](images/pipeline-success.png)
 
 ---
 
