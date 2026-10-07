@@ -30,6 +30,10 @@ jobs:
     permissions: {contents: read, packages: write}
     steps:
       - uses: actions/checkout@v4
+      - name: Normalize image owner
+        id: image_owner
+        shell: bash
+        run: echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -37,26 +41,26 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build images
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/taskboard-backend:${{ github.sha }} ./backend
-          docker build -t ghcr.io/${{ github.repository_owner }}/taskboard-frontend:${{ github.sha }} ./frontend
+          docker build -t ghcr.io/${{ steps.image_owner.outputs.owner }}/taskboard-backend:${{ github.sha }} ./backend
+          docker build -t ghcr.io/${{ steps.image_owner.outputs.owner }}/taskboard-frontend:${{ github.sha }} ./frontend
       - name: Scan backend
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/taskboard-backend:${{ github.sha }}
+          image-ref: ghcr.io/${{ steps.image_owner.outputs.owner }}/taskboard-backend:${{ github.sha }}
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '1'
       - name: Scan frontend
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/taskboard-frontend:${{ github.sha }}
+          image-ref: ghcr.io/${{ steps.image_owner.outputs.owner }}/taskboard-frontend:${{ github.sha }}
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '1'
       - name: Push images
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/taskboard-backend:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository_owner }}/taskboard-frontend:${{ github.sha }}
+          docker push ghcr.io/${{ steps.image_owner.outputs.owner }}/taskboard-backend:${{ github.sha }}
+          docker push ghcr.io/${{ steps.image_owner.outputs.owner }}/taskboard-frontend:${{ github.sha }}
   deploy:
     if: github.ref == 'refs/heads/main'
     needs: build-scan-push
@@ -64,6 +68,10 @@ jobs:
     permissions: {contents: read, packages: read}
     steps:
       - uses: actions/checkout@v4
+      - name: Normalize image owner
+        id: image_owner
+        shell: bash
+        run: echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
       - uses: azure/setup-helm@v4
       - name: Configure kubectl
         env: {KUBE_CONFIG_DATA: '${{ secrets.KUBE_CONFIG_DATA }}'}
@@ -75,5 +83,5 @@ jobs:
           helm upgrade --install taskboard ./helm/taskboard -n taskboard --create-namespace \
             --set backend.tag=${{ github.sha }} \
             --set frontend.tag=${{ github.sha }} \
-            --set backend.image=ghcr.io/${{ github.repository_owner }}/taskboard-backend \
-            --set frontend.image=ghcr.io/${{ github.repository_owner }}/taskboard-frontend
+            --set backend.image=ghcr.io/${{ steps.image_owner.outputs.owner }}/taskboard-backend \
+            --set frontend.image=ghcr.io/${{ steps.image_owner.outputs.owner }}/taskboard-frontend
